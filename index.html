@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冷蔵庫の材料からレシピ検索</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-area {
+            margin-bottom: 20px;
+        }
+        .ingredients-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .ingredient-tag {
+            background-color: #e1f5fe;
+            padding: 6px 12px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        .remove-btn {
+            margin-left: 6px;
+            cursor: pointer;
+            color: #666;
+            font-weight: bold;
+        }
+        input {
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            width: 70%;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .add-btn {
+            margin-left: 10px;
+            width: 25%;
+        }
+        .search-btn {
+            width: 100%;
+            background-color: #2196F3;
+            margin-bottom: 20px;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .recipe-card {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+        .recipe-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .recipe-card p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .recipe-card a {
+            color: #2196F3;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .attribution {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>冷蔵庫の材料からレシピ検索</h1>
+        
+        <div class="input-area">
+            <div class="ingredients-container" id="ingredients-list">
+                <!-- 材料タグがここに追加されます -->
+            </div>
+            
+            <div>
+                <input type="text" id="ingredient-input" placeholder="材料を入力（例: 豚肉, 玉ねぎ）">
+                <button class="add-btn" onclick="addIngredient()">追加</button>
+            </div>
+        </div>
+        
+        <button class="search-btn" onclick="searchRecipes()">レシピを検索</button>
+        
+        <div class="loader" id="loading"></div>
+        
+        <div class="results" id="results">
+            <!-- 検索結果がここに表示されます -->
+        </div>
+        
+        <div class="attribution">
+            <p>※このアプリはクックパッド、楽天レシピ、E・レシピ、デリッシュキッチン、クラシル、Nadia、レタスクラブ、マカロニなどの検索結果を表示します。</p>
+        </div>
+    </div>
+
+    <script>
+        // 材料リストを管理する配列
+        let ingredients = [];
+        
+        // Enterキーで材料を追加
+        document.getElementById('ingredient-input').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                addIngredient();
+            }
+        });
+        
+        // 材料を追加する関数
+        function addIngredient() {
+            const input = document.getElementById('ingredient-input');
+            const value = input.value.trim();
+            
+            if (value && !ingredients.includes(value)) {
+                ingredients.push(value);
+                renderIngredients();
+                input.value = '';
+            }
+        }
+        
+        // 材料を削除する関数
+        function removeIngredient(index) {
+            ingredients.splice(index, 1);
+            renderIngredients();
+        }
+        
+        // 材料リストを表示する関数
+        function renderIngredients() {
+            const container = document.getElementById('ingredients-list');
+            container.innerHTML = '';
+            
+            ingredients.forEach((ingredient, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'ingredient-tag';
+                tag.innerHTML = `
+                    ${ingredient}
+                    <span class="remove-btn" onclick="removeIngredient(${index})">×</span>
+                `;
+                container.appendChild(tag);
+            });
+        }
+        
+        // レシピを検索する関数
+        function searchRecipes() {
+            if (ingredients.length === 0) {
+                alert('少なくとも1つの材料を入力してください');
+                return;
+            }
+            
+            const resultsContainer = document.getElementById('results');
+            const loader = document.getElementById('loading');
+            
+            // ローディング表示
+            loader.style.display = 'block';
+            resultsContainer.innerHTML = '';
+            
+            // 材料をクエリパラメータに変換
+            const query = ingredients.join(' ');
+            
+            // 実際はAPIを使用するか、以下のようにレシピサイトに直接検索クエリを送ります
+            const cookpad = `https://cookpad.com/search/${encodeURIComponent(query)}`;
+            const rakuten = `https://recipe.rakuten.co.jp/search/${encodeURIComponent(query)}`;
+            const erecipe = `https://erecipe.woman.excite.co.jp/search/${encodeURIComponent(query)}`;
+            const delish = `https://delishkitchen.tv/search?query=${encodeURIComponent(query)}`;
+            // クラシルは検索が複雑なため、検索ページにリダイレクト
+            const kurashiru = `https://www.kurashiru.com/`;
+            const nadia = `https://oceans-nadia.com/search?q=${encodeURIComponent(query)}`;
+            // レタスクラブの検索URLを修正
+            const lettuceclub = `https://www.lettuceclub.net/recipe/search/${encodeURIComponent(query)}/`;
+            const macaroni = `https://macaro-ni.jp/search?word=${encodeURIComponent(query)}`;
+            
+            // 検索結果表示（ここでは模擬データを表示）
+            setTimeout(() => {
+                loader.style.display = 'none';
+                
+                // レシピサイトへのリンクを表示
+                resultsContainer.innerHTML = `
+                    <div class="recipe-card">
+                        <h3>クックパッドで「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <a href="${cookpad}" target="_blank">クックパッドで見る →</a>
+                    </div>
+                    
+                    <div class="recipe-card">
+                        <h3>楽天レシピで「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <a href="${rakuten}" target="_blank">楽天レシピで見る →</a>
+                    </div>
+                    
+                    <div class="recipe-card">
+                        <h3>E・レシピで「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <a href="${erecipe}" target="_blank">E・レシピで見る →</a>
+                    </div>
+                    
+                    <div class="recipe-card">
+                        <h3>デリッシュキッチンで「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <a href="${delish}" target="_blank">デリッシュキッチンで見る →</a>
+                    </div>
+                    
+                    <div class="recipe-card">
+                        <h3>クラシルで「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <p>※クラシルは直接検索ページへ移動します</p>
+                        <a href="${kurashiru}" target="_blank">クラシルで検索する →</a>
+                    </div>
+                    
+                    <div class="recipe-card">
+                        <h3>Nadia (ナディア)で「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <a href="${nadia}" target="_blank">Nadiaで見る →</a>
+                    </div>
+                    
+                    <div class="recipe-card">
+                        <h3>レタスクラブで「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <a href="${lettuceclub}" target="_blank">レタスクラブで見る →</a>
+                    </div>
+                    
+                    <div class="recipe-card">
+                        <h3>マカロニで「${query}」の検索結果</h3>
+                        <p>材料: ${ingredients.join('、')}</p>
+                        <a href="${macaroni}" target="_blank">マカロニで見る →</a>
+                    </div>
+                `;
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
