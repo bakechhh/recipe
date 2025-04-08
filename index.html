@@ -117,6 +117,99 @@
             font-size: 12px;
             color: #999;
         }
+
+        /* タブスタイル */
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+        }
+        .tabs::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        .tab {
+            padding: 10px 16px;
+            background-color: #f1f1f1;
+            border-radius: 20px;
+            margin-right: 8px;
+            white-space: nowrap;
+            cursor: pointer;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .tab.active {
+            background-color: #2196F3;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* プレビューカード */
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .preview-card {
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .preview-image {
+            width: 100%;
+            height: 120px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 12px;
+        }
+        .preview-image-placeholder {
+            width: 40px;
+            height: 40px;
+            background-color: #ddd;
+            border-radius: 50%;
+            margin-bottom: 5px;
+        }
+        .preview-info {
+            padding: 10px;
+        }
+        .preview-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            color: #333;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 34px;
+        }
+        .preview-meta {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+        .all-recipes-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .all-recipes-link a {
+            color: #2196F3;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -143,7 +236,7 @@
         </div>
         
         <div class="attribution">
-            <p>※このアプリはクックパッド、楽天レシピ、E・レシピ、デリッシュキッチン、クラシル、Nadia、レタスクラブ、マカロニなどの検索結果を表示します。</p>
+            <p>※このアプリはクックパッド、楽天レシピ、E・レシピ、デリッシュキッチン、Nadiaなどのサイトを対象に検索します。</p>
         </div>
     </div>
 
@@ -192,6 +285,23 @@
             });
         }
         
+        // タブを切り替える関数
+        function switchTab(event, tabId) {
+            // タブの状態を更新
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // タブコンテンツの状態を更新
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+        
         // レシピを検索する関数
         function searchRecipes() {
             if (ingredients.length === 0) {
@@ -209,73 +319,274 @@
             // 材料をクエリパラメータに変換
             const query = ingredients.join(' ');
             
-            // 実際はAPIを使用するか、以下のようにレシピサイトに直接検索クエリを送ります
+            // レシピサイトのURL生成
             const cookpad = `https://cookpad.com/search/${encodeURIComponent(query)}`;
             const rakuten = `https://recipe.rakuten.co.jp/search/${encodeURIComponent(query)}`;
             const erecipe = `https://erecipe.woman.excite.co.jp/search/${encodeURIComponent(query)}`;
             const delish = `https://delishkitchen.tv/search?query=${encodeURIComponent(query)}`;
-            // クラシルは検索が複雑なため、検索ページにリダイレクト
             const kurashiru = `https://www.kurashiru.com/`;
             const nadia = `https://oceans-nadia.com/search?q=${encodeURIComponent(query)}`;
-            // レタスクラブの検索URLを修正
             const lettuceclub = `https://www.lettuceclub.net/recipe/search/${encodeURIComponent(query)}/`;
             const macaroni = `https://macaro-ni.jp/search?word=${encodeURIComponent(query)}`;
             
-            // 検索結果表示（ここでは模擬データを表示）
+            // ダミーのレシピデータ（実際は各サイトからAPI経由で取得）
+            const dummyRecipes = {
+                cookpad: [
+                    { title: "豚肉と玉ねぎの生姜焼き", time: "15分", ingredients: ["豚肉", "玉ねぎ", "生姜"] },
+                    { title: "豚バラと白菜の重ね蒸し", time: "20分", ingredients: ["豚肉", "白菜", "ねぎ"] },
+                    { title: "豚こまと野菜のオイスター炒め", time: "10分", ingredients: ["豚肉", "ピーマン", "人参"] },
+                    { title: "簡単！豚肉と大根の煮物", time: "30分", ingredients: ["豚肉", "大根", "にんじん"] },
+                    { title: "スタミナ満点！豚キムチ炒め", time: "15分", ingredients: ["豚肉", "キムチ", "玉ねぎ"] }
+                ],
+                rakuten: [
+                    { title: "豚肉となすの味噌炒め", time: "15分", ingredients: ["豚肉", "なす", "味噌"] },
+                    { title: "豚肉と春雨の中華サラダ", time: "20分", ingredients: ["豚肉", "春雨", "きゅうり"] },
+                    { title: "簡単！豚肉のハーブソテー", time: "15分", ingredients: ["豚肉", "ハーブ", "にんにく"] },
+                    { title: "豚肉とじゃがいものカレー炒め", time: "20分", ingredients: ["豚肉", "じゃがいも", "カレー粉"] },
+                    { title: "豚肉とさつまいもの甘辛煮", time: "25分", ingredients: ["豚肉", "さつまいも", "しょうゆ"] }
+                ],
+                delish: [
+                    { title: "豚肉と青梗菜のオイスター炒め", time: "10分", ingredients: ["豚肉", "青梗菜", "オイスターソース"] },
+                    { title: "豚肉と卵のとじ丼", time: "15分", ingredients: ["豚肉", "卵", "玉ねぎ"] },
+                    { title: "簡単！豚肉のチーズ巻き", time: "20分", ingredients: ["豚肉", "チーズ", "バジル"] },
+                    { title: "豚肉とパプリカの甘酢炒め", time: "15分", ingredients: ["豚肉", "パプリカ", "酢"] },
+                    { title: "豚肉とキャベツの味噌バター炒め", time: "15分", ingredients: ["豚肉", "キャベツ", "味噌"] }
+                ],
+                nadia: [
+                    { title: "プロ直伝！豚肉の角煮", time: "60分", ingredients: ["豚肉", "しょうが", "ねぎ"] },
+                    { title: "豚肉とブロッコリーのクリーム煮", time: "20分", ingredients: ["豚肉", "ブロッコリー", "牛乳"] },
+                    { title: "豚肉とれんこんのごま炒め", time: "15分", ingredients: ["豚肉", "れんこん", "ごま"] },
+                    { title: "豚肉の香味野菜たっぷり巻き", time: "25分", ingredients: ["豚肉", "大葉", "にんじん"] },
+                    { title: "豚肉とかぼちゃの煮物", time: "30分", ingredients: ["豚肉", "かぼちゃ", "だし汁"] }
+                ],
+                erecipe: [
+                    { title: "豚肉とゴボウの甘辛炒め", time: "20分", ingredients: ["豚肉", "ごぼう", "みりん"] },
+                    { title: "豚肉と小松菜のにんにく炒め", time: "15分", ingredients: ["豚肉", "小松菜", "にんにく"] },
+                    { title: "ボリューム満点！豚肉の生姜焼き丼", time: "15分", ingredients: ["豚肉", "しょうが", "玉ねぎ"] },
+                    { title: "豚肉と厚揚げの中華風煮物", time: "25分", ingredients: ["豚肉", "厚揚げ", "長ねぎ"] },
+                    { title: "豚肉と大葉の梅しそ巻き", time: "20分", ingredients: ["豚肉", "大葉", "梅干し"] }
+                ]
+            };
+            
+            // 少し遅延を入れてタブと検索結果を表示
             setTimeout(() => {
                 loader.style.display = 'none';
                 
-                // レシピサイトへのリンクを表示
-                resultsContainer.innerHTML = `
+                // タブとプレビュー表示のHTML作成
+                let tabsHtml = `<div class="tabs">
+                    <div class="tab active" onclick="switchTab(event, 'cookpad-tab')">クックパッド</div>
+                    <div class="tab" onclick="switchTab(event, 'rakuten-tab')">楽天レシピ</div>
+                    <div class="tab" onclick="switchTab(event, 'delish-tab')">デリッシュキッチン</div>
+                    <div class="tab" onclick="switchTab(event, 'nadia-tab')">Nadia</div>
+                    <div class="tab" onclick="switchTab(event, 'erecipe-tab')">E・レシピ</div>
+                    <div class="tab" onclick="switchTab(event, 'all-sites-tab')">全サイト</div>
+                </div>`;
+                
+                // クックパッドタブのコンテンツ
+                let cookpadHtml = `<div id="cookpad-tab" class="tab-content active">
+                    <h3>クックパッドで「${query}」のレシピ</h3>
+                    <div class="preview-grid">`;
+                
+                dummyRecipes.cookpad.forEach(recipe => {
+                    cookpadHtml += `
+                        <div class="preview-card">
+                            <div class="preview-image">
+                                <div style="text-align: center;">
+                                    <div class="preview-image-placeholder"></div>
+                                    料理イメージ
+                                </div>
+                            </div>
+                            <div class="preview-info">
+                                <h4 class="preview-title">${recipe.title}</h4>
+                                <div class="preview-meta">
+                                    <span>調理時間: ${recipe.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                cookpadHtml += `</div>
+                    <div class="all-recipes-link">
+                        <a href="${cookpad}" target="_blank">クックパッドで全てのレシピを見る →</a>
+                    </div>
+                </div>`;
+                
+                // 楽天レシピタブのコンテンツ
+                let rakutenHtml = `<div id="rakuten-tab" class="tab-content">
+                    <h3>楽天レシピで「${query}」のレシピ</h3>
+                    <div class="preview-grid">`;
+                
+                dummyRecipes.rakuten.forEach(recipe => {
+                    rakutenHtml += `
+                        <div class="preview-card">
+                            <div class="preview-image">
+                                <div style="text-align: center;">
+                                    <div class="preview-image-placeholder"></div>
+                                    料理イメージ
+                                </div>
+                            </div>
+                            <div class="preview-info">
+                                <h4 class="preview-title">${recipe.title}</h4>
+                                <div class="preview-meta">
+                                    <span>調理時間: ${recipe.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                rakutenHtml += `</div>
+                    <div class="all-recipes-link">
+                        <a href="${rakuten}" target="_blank">楽天レシピで全てのレシピを見る →</a>
+                    </div>
+                </div>`;
+                
+                // デリッシュキッチンタブのコンテンツ
+                let delishHtml = `<div id="delish-tab" class="tab-content">
+                    <h3>デリッシュキッチンで「${query}」のレシピ</h3>
+                    <div class="preview-grid">`;
+                
+                dummyRecipes.delish.forEach(recipe => {
+                    delishHtml += `
+                        <div class="preview-card">
+                            <div class="preview-image">
+                                <div style="text-align: center;">
+                                    <div class="preview-image-placeholder"></div>
+                                    料理イメージ
+                                </div>
+                            </div>
+                            <div class="preview-info">
+                                <h4 class="preview-title">${recipe.title}</h4>
+                                <div class="preview-meta">
+                                    <span>調理時間: ${recipe.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                delishHtml += `</div>
+                    <div class="all-recipes-link">
+                        <a href="${delish}" target="_blank">デリッシュキッチンで全てのレシピを見る →</a>
+                    </div>
+                </div>`;
+                
+                // Nadiaタブのコンテンツ
+                let nadiaHtml = `<div id="nadia-tab" class="tab-content">
+                    <h3>Nadiaで「${query}」のレシピ</h3>
+                    <div class="preview-grid">`;
+                
+                dummyRecipes.nadia.forEach(recipe => {
+                    nadiaHtml += `
+                        <div class="preview-card">
+                            <div class="preview-image">
+                                <div style="text-align: center;">
+                                    <div class="preview-image-placeholder"></div>
+                                    料理イメージ
+                                </div>
+                            </div>
+                            <div class="preview-info">
+                                <h4 class="preview-title">${recipe.title}</h4>
+                                <div class="preview-meta">
+                                    <span>調理時間: ${recipe.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                nadiaHtml += `</div>
+                    <div class="all-recipes-link">
+                        <a href="${nadia}" target="_blank">Nadiaで全てのレシピを見る →</a>
+                    </div>
+                </div>`;
+                
+                // E・レシピタブのコンテンツ
+                let erecipeHtml = `<div id="erecipe-tab" class="tab-content">
+                    <h3>E・レシピで「${query}」のレシピ</h3>
+                    <div class="preview-grid">`;
+                
+                dummyRecipes.erecipe.forEach(recipe => {
+                    erecipeHtml += `
+                        <div class="preview-card">
+                            <div class="preview-image">
+                                <div style="text-align: center;">
+                                    <div class="preview-image-placeholder"></div>
+                                    料理イメージ
+                                </div>
+                            </div>
+                            <div class="preview-info">
+                                <h4 class="preview-title">${recipe.title}</h4>
+                                <div class="preview-meta">
+                                    <span>調理時間: ${recipe.time}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                erecipeHtml += `</div>
+                    <div class="all-recipes-link">
+                        <a href="${erecipe}" target="_blank">E・レシピで全てのレシピを見る →</a>
+                    </div>
+                </div>`;
+                
+                // 全サイトタブのコンテンツ
+                let allSitesHtml = `<div id="all-sites-tab" class="tab-content">
+                    <h3>「${query}」の検索結果</h3>
                     <div class="recipe-card">
-                        <h3>クックパッドで「${query}」の検索結果</h3>
+                        <h3>クックパッド</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <a href="${cookpad}" target="_blank">クックパッドで見る →</a>
                     </div>
                     
                     <div class="recipe-card">
-                        <h3>楽天レシピで「${query}」の検索結果</h3>
+                        <h3>楽天レシピ</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <a href="${rakuten}" target="_blank">楽天レシピで見る →</a>
                     </div>
                     
                     <div class="recipe-card">
-                        <h3>E・レシピで「${query}」の検索結果</h3>
+                        <h3>E・レシピ</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <a href="${erecipe}" target="_blank">E・レシピで見る →</a>
                     </div>
                     
                     <div class="recipe-card">
-                        <h3>デリッシュキッチンで「${query}」の検索結果</h3>
+                        <h3>デリッシュキッチン</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <a href="${delish}" target="_blank">デリッシュキッチンで見る →</a>
                     </div>
                     
                     <div class="recipe-card">
-                        <h3>クラシルで「${query}」の検索結果</h3>
+                        <h3>クラシル</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <p>※クラシルは直接検索ページへ移動します</p>
                         <a href="${kurashiru}" target="_blank">クラシルで検索する →</a>
                     </div>
                     
                     <div class="recipe-card">
-                        <h3>Nadia (ナディア)で「${query}」の検索結果</h3>
+                        <h3>Nadia (ナディア)</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <a href="${nadia}" target="_blank">Nadiaで見る →</a>
                     </div>
                     
                     <div class="recipe-card">
-                        <h3>レタスクラブで「${query}」の検索結果</h3>
+                        <h3>レタスクラブ</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <a href="${lettuceclub}" target="_blank">レタスクラブで見る →</a>
                     </div>
                     
                     <div class="recipe-card">
-                        <h3>マカロニで「${query}」の検索結果</h3>
+                        <h3>マカロニ</h3>
                         <p>材料: ${ingredients.join('、')}</p>
                         <a href="${macaroni}" target="_blank">マカロニで見る →</a>
                     </div>
-                `;
+                </div>`;
+                
+                // 結果を表示
+                resultsContainer.innerHTML = tabsHtml + cookpadHtml + rakutenHtml + delishHtml + nadiaHtml + erecipeHtml + allSitesHtml;
             }, 1500);
         }
     </script>
