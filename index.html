@@ -125,6 +125,8 @@
             margin-bottom: 15px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none; /* Firefox */
+            position: relative;
+            padding: 5px 0;
         }
         .tabs::-webkit-scrollbar {
             display: none; /* Chrome, Safari, Opera */
@@ -138,10 +140,43 @@
             cursor: pointer;
             font-size: 14px;
             flex-shrink: 0;
+            transition: background-color 0.3s, color 0.3s;
         }
         .tab.active {
             background-color: #2196F3;
             color: white;
+        }
+        .scroll-indicator {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 2;
+            cursor: pointer;
+        }
+        .scroll-left {
+            left: 0;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+        }
+        .scroll-right {
+            right: 0;
+            background: linear-gradient(to left, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+        }
+        .scroll-arrow {
+            border: solid #666;
+            border-width: 0 3px 3px 0;
+            display: inline-block;
+            padding: 3px;
+        }
+        .arrow-left {
+            transform: rotate(135deg);
+        }
+        .arrow-right {
+            transform: rotate(-45deg);
         }
         .tab-content {
             display: none;
@@ -162,6 +197,28 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .preview-card:active {
+            transform: scale(0.98);
+        }
+        .preview-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .preview-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0);
+            transition: background 0.2s;
+        }
+        .preview-card:active::after {
+            background: rgba(0, 0, 0, 0.05);
         }
         .preview-image {
             width: 100%;
@@ -300,6 +357,50 @@
                 content.classList.remove('active');
             });
             document.getElementById(tabId).classList.add('active');
+            
+            // タブのスクロール位置を調整
+            event.target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+        
+        // タブを左右にスクロールする関数
+        function scrollTabs(direction) {
+            const tabsContainer = document.getElementById('tabs-container');
+            const scrollAmount = 150; // スクロール量（ピクセル）
+            
+            if (direction === 'left') {
+                tabsContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            } else {
+                tabsContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
+            
+            // スクロール後にスクロールインジケーターの表示を更新
+            setTimeout(updateScrollIndicators, 300);
+        }
+        
+        // スクロールインジケーターの表示を管理する関数
+        function updateScrollIndicators() {
+            const tabsContainer = document.getElementById('tabs-container');
+            const leftIndicator = document.getElementById('scroll-left');
+            const rightIndicator = document.getElementById('scroll-right');
+            
+            if (tabsContainer.scrollLeft <= 10) {
+                leftIndicator.style.opacity = '0.3';
+            } else {
+                leftIndicator.style.opacity = '1';
+            }
+            
+            if (tabsContainer.scrollLeft >= tabsContainer.scrollWidth - tabsContainer.clientWidth - 10) {
+                rightIndicator.style.opacity = '0.3';
+            } else {
+                rightIndicator.style.opacity = '1';
+            }
+        }
+        
+        // レシピカードがクリックされたときの処理
+        function openRecipeDetail(site, recipeTitle) {
+            // 実際のアプリでは、ここでレシピの詳細ページに遷移したり、
+            // モーダルウィンドウで詳細情報を表示したりします
+            alert(site + 'の「' + recipeTitle + '」が選択されました。\n実際のアプリではここでレシピ詳細が表示されます。');
         }
         
         // レシピを検索する関数
@@ -373,13 +474,19 @@
                 loader.style.display = 'none';
                 
                 // タブとプレビュー表示のHTML作成
-                let tabsHtml = `<div class="tabs">
+                let tabsHtml = `<div class="tabs" id="tabs-container">
+                    <div class="scroll-indicator scroll-left" onclick="scrollTabs('left')" id="scroll-left">
+                        <i class="scroll-arrow arrow-left"></i>
+                    </div>
                     <div class="tab active" onclick="switchTab(event, 'cookpad-tab')">クックパッド</div>
                     <div class="tab" onclick="switchTab(event, 'rakuten-tab')">楽天レシピ</div>
                     <div class="tab" onclick="switchTab(event, 'delish-tab')">デリッシュキッチン</div>
                     <div class="tab" onclick="switchTab(event, 'nadia-tab')">Nadia</div>
                     <div class="tab" onclick="switchTab(event, 'erecipe-tab')">E・レシピ</div>
                     <div class="tab" onclick="switchTab(event, 'all-sites-tab')">全サイト</div>
+                    <div class="scroll-indicator scroll-right" onclick="scrollTabs('right')" id="scroll-right">
+                        <i class="scroll-arrow arrow-right"></i>
+                    </div>
                 </div>`;
                 
                 // クックパッドタブのコンテンツ
@@ -389,7 +496,7 @@
                 
                 dummyRecipes.cookpad.forEach(recipe => {
                     cookpadHtml += `
-                        <div class="preview-card">
+                        <div class="preview-card" onclick="openRecipeDetail('クックパッド', '${recipe.title}')">
                             <div class="preview-image">
                                 <div style="text-align: center;">
                                     <div class="preview-image-placeholder"></div>
@@ -419,7 +526,7 @@
                 
                 dummyRecipes.rakuten.forEach(recipe => {
                     rakutenHtml += `
-                        <div class="preview-card">
+                        <div class="preview-card" onclick="openRecipeDetail('楽天レシピ', '${recipe.title}')">
                             <div class="preview-image">
                                 <div style="text-align: center;">
                                     <div class="preview-image-placeholder"></div>
@@ -449,7 +556,7 @@
                 
                 dummyRecipes.delish.forEach(recipe => {
                     delishHtml += `
-                        <div class="preview-card">
+                        <div class="preview-card" onclick="openRecipeDetail('デリッシュキッチン', '${recipe.title}')">
                             <div class="preview-image">
                                 <div style="text-align: center;">
                                     <div class="preview-image-placeholder"></div>
@@ -479,7 +586,7 @@
                 
                 dummyRecipes.nadia.forEach(recipe => {
                     nadiaHtml += `
-                        <div class="preview-card">
+                        <div class="preview-card" onclick="openRecipeDetail('Nadia', '${recipe.title}')">
                             <div class="preview-image">
                                 <div style="text-align: center;">
                                     <div class="preview-image-placeholder"></div>
@@ -509,7 +616,7 @@
                 
                 dummyRecipes.erecipe.forEach(recipe => {
                     erecipeHtml += `
-                        <div class="preview-card">
+                        <div class="preview-card" onclick="openRecipeDetail('E・レシピ', '${recipe.title}')">
                             <div class="preview-image">
                                 <div style="text-align: center;">
                                     <div class="preview-image-placeholder"></div>
@@ -587,6 +694,17 @@
                 
                 // 結果を表示
                 resultsContainer.innerHTML = tabsHtml + cookpadHtml + rakutenHtml + delishHtml + nadiaHtml + erecipeHtml + allSitesHtml;
+                
+                // スクロールインジケーターの初期状態を設定
+                setTimeout(function() {
+                    updateScrollIndicators();
+                    
+                    // タブコンテナのスクロールイベントリスナーを追加
+                    const tabsContainer = document.getElementById('tabs-container');
+                    if (tabsContainer) {
+                        tabsContainer.addEventListener('scroll', updateScrollIndicators);
+                    }
+                }, 100);
             }, 1500);
         }
     </script>
